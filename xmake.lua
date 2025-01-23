@@ -1,9 +1,10 @@
 add_rules("mode.debug", "mode.release")
 
-includes("koios", "toolpex")
+includes("koios")
 
 add_requires(
-    "gtest"
+    "gtest", 
+    "uriparser"
 )
 
 set_languages("c++23", "c17")
@@ -26,9 +27,13 @@ end
 
 target("koioshttp")
     set_kind("shared")
+    add_deps("koios")
     add_files("src/*.cc")
     set_policy("build.warning", true)
     add_cxflags("-Wconversion", { force = true })
+    add_packages(
+        "uriparser"
+    )
     add_includedirs(
         "include", 
         { public = true }
@@ -41,6 +46,7 @@ target("koioshttp-example")
 
 target("koioshttp-test")
     set_kind("binary")
+    add_deps("koioshttp")
     add_packages(
         "gtest"
     )

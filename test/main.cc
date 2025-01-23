@@ -1,5 +1,4 @@
 #include "gtest/gtest.h"
-#include "koios/task_scheduler_concept.h"
 #include "koios/runtime.h"
 
 int main(int argc, char** argv)
