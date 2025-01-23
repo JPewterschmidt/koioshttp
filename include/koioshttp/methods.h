@@ -1,17 +1,17 @@
-#ifndef KOIOSHTTP_METHODS_H_
-#define KOIOSHTTP_METHODS_H_
+#ifndef KOIOSHTTP_METHODS_H
+#define KOIOSHTTP_METHODS_H
 
-#include "macros.h"
 #include <string_view>
 #include <cstddef>
-#include <llhttp.h>
+
+#include "koioshttp/macros.h"
 
 namespace koios::http
 {
     enum method : uint16_t
     {
 #define XX(num, name, string) name = num,
-        CC_HTTP_METHOD_MAP(XX)
+        KH_HTTP_METHOD_MAP(XX)
 #undef XX
         INVALID_METHOD,
     };
