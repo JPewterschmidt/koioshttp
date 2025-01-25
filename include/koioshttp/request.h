@@ -17,12 +17,7 @@ public:
 
 public:
     basic_request(message_type&& data)
-        : m_data{ ::std::make_shared<message_type>(::std::move(data)) }
-    {
-    }
-
-    basic_request(::std::shared_ptr<message_type> data_ptr) noexcept
-        : m_data{ ::std::move(data_ptr) }
+        : message_type{ ::std::move(data) }
     {
     }
 
@@ -36,11 +31,7 @@ public:
     bool            get_keep_alive()    const noexcept { return this->m_keep_alive;   }
     bool            get_web_socket()    const noexcept { return this->m_web_socket;   }
 
-    const auto& headers() const noexcept 
-    { 
-        toolpex_assert(!!m_data);
-        return m_data->m_headers;   
-    }
+    const auto& headers() const noexcept { return this->m_headers; }
 };
 
 namespace server { using request = basic_request<details::message_from_net>; }
