@@ -14,11 +14,10 @@
 #include "koioshttp/status.h"
 #include "koioshttp/method.h"
 
-#define CRLF "\r\n"
-#define CRLF_SV ::std::string_view{ CRLF }
-
 namespace koios::http
 {
+
+extern constexpr static ::std::string_view crlf{"\r\n"};
 
 template<typename StringLike>
 struct message_object
@@ -37,6 +36,7 @@ struct message_object
     ::std::multimap<string_type, string_type> m_headers;
 };
 
+// OK
 class message_from_net : public message_object<::std::string_view>
 {
 public:
@@ -46,35 +46,26 @@ public:
     message_from_net() = default;
     message_from_net(storage_type&& stor) : message_from_net(::std::make_shared<storage_type>(::std::move(stor))) {}
     message_from_net(::std::shared_ptr<storage_type> stor) noexcept : m_storage{ ::std::move(stor) } {}
+
     void set_storage(storage_type&& stor) { ::std::make_shared<storage_type>(::std::move(stor)); }
     void set_storage(::std::shared_ptr<storage_type> stor) noexcept
         { m_storage = stor; }
-    auto storage_pointer() noexcept { return m_storage; }
+
     auto& storage() noexcept { return *m_storage; }
-    ::std::span<const ::std::byte> to_payload() const;
-    ::std::string_view to_payload_string() const;
 
 private:
-    ::std::shared_ptr<storage_type> m_storage{};
+    ::std::shared_ptr<toolpex::buffer> m_storage{};
 };
 
+// OK
 class message_to_net : public message_object<::std::string>
 {
 public:
     using storage_type = toolpex::buffer;
     
 public:
-    void fill_in_storage() const;
-    auto storage_pointer() noexcept { return m_storage; }
-    auto& storage() noexcept { return *m_storage; }
-    ::std::span<const ::std::byte> to_payload() const;
-    ::std::string_view to_payload_string() const;
-    
-private:
-    mutable bool m_filled{ false };
-    ::std::shared_ptr<storage_type> m_storage{ 
-        ::std::make_shared<storage_type>() 
-    };
+    ::std::vector<::std::string_view> message_parts() const;
+    toolpex::buffer fill_to_buffer() const;
 };
 
 } // namespace koios::http
