@@ -3,6 +3,7 @@
 
 #include "toolpex/buffer.h"
 #include "toolpex/unique_posix_fd.h"
+#include "toolpex/ipaddress.h"
 
 #include "koios/generator.h"
 
@@ -25,12 +26,7 @@ public:
     operator const toolpex::unique_posix_fd& () const noexcept { return m_fd; }
     operator int () noexcept { return m_fd; }
 
-    generator<request> requests();
-    task<> send(response rsp);
-
 private:
-    friend class server;
-
     toolpex::unique_posix_fd m_fd;
     toolpex::buffer m_buffer;
 };

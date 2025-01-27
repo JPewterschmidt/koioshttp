@@ -9,7 +9,7 @@
 namespace koios::http
 {
 
-task<::std::optional<request>> 
+task<::std::optional<server::request>> 
 parse_request_from(
     const toolpex::unique_posix_fd& fd, 
     ::std::chrono::system_clock::time_point timeout

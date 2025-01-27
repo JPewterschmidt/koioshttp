@@ -3,6 +3,7 @@
 
 #include <string_view>
 #include <cstddef>
+#include <cstdint>
 
 namespace koios::http
 {

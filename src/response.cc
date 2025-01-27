@@ -1,7 +1,7 @@
 #include "koioshttp/response.h"
 
-namespace wilson::http
+namespace koios::http
 {
-    template<> class basic_response<details::message_from_net>;
-    template<> class basic_response<details::message_to_net>;
+    template<> class basic_response<koios::http::details::message_from_net>;
+    template<> class basic_response<koios::http::details::message_to_net>;
 }

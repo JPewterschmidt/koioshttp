@@ -14,10 +14,10 @@
 #include "koioshttp/status.h"
 #include "koioshttp/methods.h"
 
-namespace koios::http
+namespace koios::http::details
 {
 
-extern constexpr static ::std::string_view crlf{"\r\n"};
+static constexpr ::std::string_view crlf{"\r\n"};
 
 template<typename StringLike>
 struct message_object

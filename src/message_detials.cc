@@ -12,10 +12,8 @@
 
 using namespace ::std::string_view_literals;
 
-namespace koios::http
+namespace koios::http::details
 {
-
-
 
 ::std::vector<::std::string_view> message_to_net::message_parts() const
 {
@@ -43,19 +41,16 @@ namespace koios::http
     result.emplace_back(crlf);
     
     // body
-    if (m_body.index() == 0) // normal body bytes
-    {
-        result.emplace_back(::std::get<0>(m_body));
-        result.emplace_back(crlf);
-        result.emplace_back(crlf);
-    }
+    result.emplace_back(m_body);
+    result.emplace_back(crlf);
+    result.emplace_back(crlf);
 
     return result; 
 }
 
 toolpex::buffer message_to_net::fill_to_buffer() const
 {
-    toolpex::buffer result(sz);
+    toolpex::buffer result;
     for (auto str : message_parts())
     {
         result.append(str);
