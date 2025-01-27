@@ -22,7 +22,7 @@ public:
 
     toolpex::ip_address::ptr peer_ip() const;
     
-    operator toolpex::unique_posix_fd& () noexcept { return m_fd; }
+    operator const toolpex::unique_posix_fd& () const noexcept { return m_fd; }
     operator int () noexcept { return m_fd; }
 
     generator<request> requests();

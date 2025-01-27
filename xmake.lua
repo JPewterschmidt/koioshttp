@@ -4,7 +4,8 @@ includes("koios")
 
 add_requires(
     "gtest", 
-    "uriparser"
+    "uriparser", 
+    "llhttp"
 )
 
 set_languages("c++23", "c17")
@@ -32,7 +33,8 @@ target("koioshttp")
     set_policy("build.warning", true)
     add_cxflags("-Wconversion", { force = true })
     add_packages(
-        "uriparser"
+        "uriparser", 
+        "llhttp"
     )
     add_includedirs(
         "include", 

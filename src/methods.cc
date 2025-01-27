@@ -1,7 +1,7 @@
 #include <string_view>
 #include <cstring>
 
-#include "koioshttp/method.h"
+#include "koioshttp/methods.h"
 
 using namespace ::std::string_view_literals;
 
