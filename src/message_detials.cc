@@ -11,6 +11,7 @@
 #include "koioshttp/message_details.h"
 
 using namespace ::std::string_view_literals;
+namespace rv = ::std::ranges::views;
 
 namespace koios::http::details
 {
@@ -41,7 +42,7 @@ namespace koios::http::details
     result.emplace_back(crlf);
     
     // body
-    result.emplace_back(m_body);
+    result.append_range(m_body_parts | rv::transform([](auto&& str) { return ::std::string_view(str); }));
     result.emplace_back(crlf);
     result.emplace_back(crlf);
 
