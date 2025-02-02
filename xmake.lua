@@ -5,7 +5,8 @@ includes("koios")
 add_requires(
     "gtest", 
     "uriparser", 
-    "llhttp"
+    "llhttp", 
+    "spdlog"
 )
 
 set_languages("c++23", "c17")
@@ -34,7 +35,8 @@ target("koioshttp")
     add_cxflags("-Wconversion", { force = true })
     add_packages(
         "uriparser", 
-        "llhttp"
+        "llhttp", 
+        "spdlog"
     )
     add_includedirs(
         "include", 

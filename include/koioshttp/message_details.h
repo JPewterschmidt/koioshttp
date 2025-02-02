@@ -24,18 +24,18 @@ struct message_object
 {
     using string_type = StringLike;
 
-    http::version  m_version{version::HTTP_1_1};
-    http::status   m_status{};
-    http::method   m_method{};
+    http::version   m_version{version::HTTP_1_1};
+    http::status    m_status{};
+    http::method    m_method{};
 
     ::std::vector<string_type> m_body_parts;
 
-    string_type    m_url;
-    string_type    m_path;
-    string_type    m_query;
-    string_type    m_fragment;
-    bool           m_keep_alive{};
-    bool           m_web_socket{};
+    string_type     m_url;
+    string_type     m_path;
+    string_type     m_query;
+    string_type     m_fragment;
+    bool            m_keep_alive{};
+    bool            m_web_socket{};
 
     ::std::multimap<string_type, string_type> m_headers;
 };

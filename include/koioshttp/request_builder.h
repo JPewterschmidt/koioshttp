@@ -33,11 +33,16 @@ public:
     void set_version(version s) noexcept { m_data->m_version  = s;   }
     void set_method(method s)   noexcept { m_data->m_method   = s;   }
 
-    void append_body(auto s)  { m_data->m_body_parts.emplace_back(::std::move(s));  }
-    void set_url(auto s)      { m_data->m_url      = string_type(::std::move(s));   }
-    void set_path(auto s)     { m_data->m_path     = string_type(::std::move(s));   }
-    void set_query(auto s)    { m_data->m_query    = string_type(::std::move(s));   }
-    void set_fragment(auto s) { m_data->m_fragment = string_type(::std::move(s));   }
+    template<typename... Args>
+    void append_body(Args&&... s) 
+    { 
+        m_data->m_body_parts.emplace_back(::std::forward<Args>(s)...); 
+    }
+
+    void set_url(auto&& s)      { m_data->m_url      = string_type(::std::forward<decltype(s)>(s));   }
+    void set_path(auto&& s)     { m_data->m_path     = string_type(::std::forward<decltype(s)>(s));   }
+    void set_query(auto&& s)    { m_data->m_query    = string_type(::std::forward<decltype(s)>(s));   }
+    void set_fragment(auto&& s) { m_data->m_fragment = string_type(::std::forward<decltype(s)>(s));   }
 
     void set_keep_alive(bool s = true) noexcept { m_data->m_keep_alive = s; }
     void set_web_socket(bool s = true) noexcept { m_data->m_web_socket = s; }

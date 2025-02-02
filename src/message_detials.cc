@@ -42,7 +42,9 @@ namespace koios::http::details
     result.emplace_back(crlf);
     
     // body
-    result.append_range(m_body_parts | rv::transform([](auto&& str) { return ::std::string_view(str); }));
+    auto strs = m_body_parts | rv::transform([](auto&& str) { return ::std::string_view(str); });
+    result.insert(result.end(), begin(strs), end(strs));
+    
     result.emplace_back(crlf);
     result.emplace_back(crlf);
 

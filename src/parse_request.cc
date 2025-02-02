@@ -1,4 +1,7 @@
+#include <string_view>
+
 #include "llhttp.h"
+#include "spdlog/spdlog.h"
 
 #include "toolpex/assert.h"
 #include "toolpex/buffer.h"
@@ -15,34 +18,37 @@ namespace
 {
     using string_type = server::request_builder::string_type;
 
-    static int on_url(::llhttp_t* p, const char* at, size_t length)
+    static inline server::request_builder& builder_ref(::llhttp_t* p)
     {
-        auto& builder = *reinterpret_cast<server::request_builder*>(p->data);
-        builder.set_url(string_type{ at, length });
-        return HPE_OK;
+        return *reinterpret_cast<server::request_builder*>(p->data);
     }
 
-    static int on_status(::llhttp_t* p, const char* at, size_t length)
+    static int on_url(::llhttp_t* p, const char* at, size_t length)
     {
-        auto& builder = *reinterpret_cast<server::request_builder*>(p->data);
-        string_type status_str{ at, length };
-        builder.set_status(to_status(status_str));
+        auto& builder = builder_ref(p);
+        builder.set_url(::std::string_view{ at, length });
         return HPE_OK;
     }
 
     static int on_method(::llhttp_t* p, const char* at, size_t length)
     {
-        auto& builder = *reinterpret_cast<server::request_builder*>(p->data);
-        string_type method_str{ at, length };
+        auto& builder = builder_ref(p);
+        ::std::string_view method_str{ at, length };
         builder.set_method(to_method(method_str));
+        return HPE_OK;
+    }
+
+    static int on_version(::llhttp_t* p, const char* at, size_t length)
+    {
+        builder_ref(p).set_version(to_version(::std::string_view{ at, length }));
         return HPE_OK;
     }
 
     static int on_header_field(::llhttp_t* p, const char* at, size_t length)
     {
-        auto& builder = *reinterpret_cast<server::request_builder*>(p->data);
-        auto& header_item = builder->header_item_trampoline();
-        TOOLPEX_ASSERT(header_item.first.empty());
+        auto& builder = builder_ref(p);
+        auto& header_item = builder.header_item_trampoline();
+        toolpex_assert(header_item.first.empty());
         header_item.first = string_type{ at, length };
 
         return HPE_OK;
@@ -50,9 +56,9 @@ namespace
 
     static int on_header_value(::llhttp_t* p, const char* at, size_t length)
     {
-        auto& builder = *reinterpret_cast<server::request_builder*>(p->data);
-        auto& header_item = builder->header_item_trampoline();
-        TOOLPEX_ASSERT(!header_item.first.empty());
+        auto& builder = builder_ref(p);
+        auto& header_item = builder.header_item_trampoline();
+        toolpex_assert(!header_item.first.empty());
         header_item.second = string_type{ at, length };
 
         builder.set_header(::std::move(header_item));
@@ -63,8 +69,8 @@ namespace
 
     static int on_body(::llhttp_t* p, const char* at, size_t length)
     {
-        auto& builder = reinterpret_cast<server::request_builder*>(p->data)->builder();
-        builder.set_body(string_type{ at, length }); // TODO suppose to be append body
+        auto& builder = builder_ref(p);
+        builder.append_body(string_type{ at, length }); // TODO suppose to be append body
         return HPE_OK;
     }
 
@@ -73,7 +79,7 @@ namespace
 
     static int on_message_begin(::llhttp_t* p)
     {
-        auto& builder = reinterpret_cast<server::request_builder*>(p->data)->builder();
+        auto& builder = builder_ref(p);
         return HPE_OK;
     }
 
@@ -126,9 +132,7 @@ namespace
     static int on_header_value_complete(::llhttp_t* p)
     {
         return HPE_OK;
-    }
-
-    
+    }   
 
 } // namspace { annyomous }
 
@@ -140,7 +144,7 @@ parse_request_from(
     while (true)
     {
         server::request_builder builder;
-        auto buffer_ptr = builder.storage();
+        auto& buffer = builder.storage();
 
         ::llhttp_t parser{};
         ::llhttp_settings_t settings{};
@@ -160,7 +164,6 @@ parse_request_from(
                 m_s->on_message_complete    = on_message_complete;
 
                 m_s->on_url                 = on_url;
-                m_s->on_status              = on_status;
                 m_s->on_method              = on_method;
                 m_s->on_version             = on_version;
 
@@ -172,7 +175,6 @@ parse_request_from(
                 m_s->on_chunk_header        = on_chunk_header;
                 m_s->on_chunk_complete      = on_chunk_complete;
                 m_s->on_url_complete        = on_url_complete;
-                m_s->on_status_complete     = on_status_complete;
 
                 ::llhttp_init(m_p, HTTP_REQUEST, m_s);
             }
@@ -182,13 +184,50 @@ parse_request_from(
         } _(&parser, &settings);
 
         
-        auto recv_ret = co_await uring::recv(fd, buffer_ptr->writable_span(), 0, timeout);
-        if (recv_ret.error_code())
-            co_return {};
+        bool yielded{};
+        ::std::chrono::system_clock::time_point timeout_tp = ::std::chrono::system_clock::now() + timeout;
 
-        buffer_ptr->commit_write(recv_ret.nbytes_delivered());
-        
-        ::llhttp_execute(
+        while (!yielded)
+        {
+            yielded = false;
+            auto recv_ret = co_await uring::recv(fd, buffer.writable_span(), 0, timeout_tp);
+            if (auto ec = recv_ret.error_code(); koios::is_timeout_ec(ec))
+            {
+                yielded = true;
+                co_yield ::std::nullopt;
+            }
+            else
+            {
+                spdlog::error("parse_request_from: pos2 err = {}", ec.message());
+                co_return;
+            }
+
+            buffer.commit_write(recv_ret.nbytes_delivered());
+            toolpex::buffer_lens<char> lens(buffer);
+            auto sp = lens.next_readable_span();
+            lens.commit_read(sp.size());
+
+            // Successfully yielded a request message.
+            if (::llhttp_errno_t lle = ::llhttp_execute(&parser, sp.data(), sp.size()); lle == HPE_OK)
+            {
+                yielded = true;
+                co_yield builder.generate_request();
+            }
+
+            // Need continue reading.
+            else if (lle == HPE_PAUSED)
+            {
+                continue;
+            }
+
+            // Other error.
+            else 
+            {
+                spdlog::error("parse_request_from::llhttp_parsed: err = {}", ::llhttp_errno_name(lle));
+                yielded = true;
+                co_yield ::std::nullopt;
+            }
+        }
     }
 }
 
