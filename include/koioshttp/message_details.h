@@ -40,7 +40,6 @@ struct message_object
     ::std::multimap<string_type, string_type> m_headers;
 };
 
-// OK
 class message_from_net : public message_object<::std::string_view>
 {
 public:
@@ -61,7 +60,6 @@ private:
     ::std::shared_ptr<toolpex::buffer> m_storage{};
 };
 
-// OK
 class message_to_net : public message_object<::std::string>
 {
 public:
