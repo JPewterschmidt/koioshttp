@@ -22,13 +22,20 @@ public:
     using storage_type  = typename message_type::storage_type;
 
 public:
-    basic_request_builder() : m_data{ ::std::make_shared<message_type>() } {}
+    basic_request_builder() 
+        : m_data{ ::std::make_shared<message_type>(::std::make_shared<storage_type>()) } 
+    {
+    }
 
     basic_request_builder(storage_type&& stor) 
-        : m_data{ ::std::make_shared<message_type>(::std::move(stor)) } {}
+        : m_data{ ::std::make_shared<message_type>(::std::move(stor)) } 
+    {
+    }
 
     basic_request_builder(::std::shared_ptr<storage_type> stor) 
-        : m_data{ ::std::make_shared<message_type>(::std::move(stor)) } {}
+        : m_data{ ::std::make_shared<message_type>(::std::move(stor)) } 
+    {
+    }
 
     void set_version(version s) noexcept { m_data->m_version  = s;   }
     void set_method(method s)   noexcept { m_data->m_method   = s;   }
@@ -65,7 +72,10 @@ public:
         m_data->m_headers.emplace(::std::move(t));
     }
 
-    generate_type generate_request() noexcept { return { m_data }; }
+    generate_type generate_request() noexcept 
+    { 
+        return { m_data };
+    }
     auto generate() noexcept { return generate_request(); }
     auto& storage() noexcept { return m_data->storage(); }
 

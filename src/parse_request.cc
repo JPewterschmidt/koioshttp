@@ -20,6 +20,7 @@ namespace
 
     static inline server::request_builder& builder_ref(::llhttp_t* p)
     {
+        toolpex_assert(!!p->data);
         return *reinterpret_cast<server::request_builder*>(p->data);
     }
 
@@ -134,6 +135,25 @@ namespace
         return HPE_OK;
     }   
 
+    static void init_parser(::llhttp_t* parser, ::llhttp_settings_t* setting)
+    {
+        ::llhttp_settings_init(setting);
+
+        setting->on_url                 = on_url;
+        setting->on_method              = on_method;
+        setting->on_version             = on_version;
+        setting->on_header_field        = on_header_field;
+        setting->on_header_value        = on_header_value;
+        setting->on_body                = on_body;
+        setting->on_chunk_header        = on_chunk_header;
+        setting->on_chunk_complete      = on_chunk_complete;
+        setting->on_url_complete        = on_url_complete;
+        setting->on_message_begin       = on_message_begin;
+        setting->on_message_complete    = on_message_complete;
+    
+        ::llhttp_init(parser, HTTP_REQUEST, setting);
+    }
+
 } // namspace { annyomous }
 
 generator<::std::optional<server::request>> 
@@ -149,40 +169,8 @@ parse_request_from(
         ::llhttp_t parser{};
         ::llhttp_settings_t settings{};
 
-        struct parser_guard 
-        {
-            constexpr ~parser_guard() noexcept 
-            {
-            }
-
-            parser_guard(::llhttp_t* p, ::llhttp_settings_t* s) noexcept
-                : m_p{ p }, m_s{ s }
-            {
-                ::llhttp_settings_init(m_s);
-
-                m_s->on_message_begin       = on_message_begin;
-                m_s->on_message_complete    = on_message_complete;
-
-                m_s->on_url                 = on_url;
-                m_s->on_method              = on_method;
-                m_s->on_version             = on_version;
-
-                m_s->on_header_field        = on_header_field;
-                m_s->on_header_value        = on_header_value;
-
-                m_s->on_body                = on_body;
-
-                m_s->on_chunk_header        = on_chunk_header;
-                m_s->on_chunk_complete      = on_chunk_complete;
-                m_s->on_url_complete        = on_url_complete;
-
-                ::llhttp_init(m_p, HTTP_REQUEST, m_s);
-            }
-            
-            ::llhttp_t* m_p;
-            ::llhttp_settings_t* m_s;
-        } _(&parser, &settings);
-
+        init_parser(&parser, &settings);
+        parser.data = &builder;
         
         bool yielded{};
         ::std::chrono::system_clock::time_point timeout_tp = ::std::chrono::system_clock::now() + timeout;
@@ -195,6 +183,10 @@ parse_request_from(
             {
                 yielded = true;
                 co_yield ::std::nullopt;
+            }
+            else if (ec == ::std::error_code{})
+            {
+                // Success
             }
             else
             {
