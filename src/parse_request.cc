@@ -154,6 +154,37 @@ namespace
         ::llhttp_init(parser, HTTP_REQUEST, setting);
     }
 
+    task<bool> 
+    fill_buffer(const toolpex::unique_posix_fd& fd, 
+                toolpex::buffer& in_out_buffer,
+                ::std::chrono::system_clock::time_point timeout_tp)
+    {
+        auto recv_ret = co_await uring::recv(fd, in_out_buffer.writable_span(), 0, timeout_tp);
+        if (auto ec = recv_ret.error_code(); ec && koios::is_timeout_ec(ec))
+        {
+            co_return false;
+        }
+        else if (!ec)
+        {
+            // Success
+        }
+        else
+        {
+            spdlog::error("parse_request_from: pos2 err = {}", ec.message());
+            co_return false;
+        }
+        in_out_buffer.commit_write(recv_ret.nbytes_delivered());
+        co_return true;
+    }
+
+    // TODO: test
+    size_t get_parsed_nbytes(const ::llhttp_t* parser, ::std::span<const char> sp)
+    {
+        const char* current_pos = reinterpret_cast<const char*>(parser->_span_pos0);
+        const size_t parsed = current_pos - sp.data();
+        return parsed;
+    }
+
 } // namspace { annyomous }
 
 generator<::std::optional<server::request>> 
@@ -161,54 +192,42 @@ parse_request_from(
     const toolpex::unique_posix_fd& fd, 
     ::std::chrono::milliseconds timeout)
 {
+    ::std::span<char> parsing_bytes;
+    ::llhttp_t parser{};
+    ::llhttp_settings_t settings{};
+
     while (true)
     {
         server::request_builder builder;
         auto& buffer = builder.storage();
-
-        ::llhttp_t parser{};
-        ::llhttp_settings_t settings{};
-
+        
         init_parser(&parser, &settings);
         parser.data = &builder;
-        
-        bool yielded{};
         ::std::chrono::system_clock::time_point timeout_tp = ::std::chrono::system_clock::now() + timeout;
 
-        while (!yielded)
+        if (!co_await fill_buffer(fd, buffer, timeout_tp))
+            co_yield ::std::nullopt;
+        
+        bool buffer_exhausted{};
+        while (!buffer_exhausted)
         {
-            yielded = false;
-            auto recv_ret = co_await uring::recv(fd, buffer.writable_span(), 0, timeout_tp);
-            if (auto ec = recv_ret.error_code(); koios::is_timeout_ec(ec))
-            {
-                yielded = true;
-                co_yield ::std::nullopt;
-            }
-            else if (ec == ::std::error_code{})
-            {
-                // Success
-            }
-            else
-            {
-                spdlog::error("parse_request_from: pos2 err = {}", ec.message());
-                co_return;
-            }
-
-            buffer.commit_write(recv_ret.nbytes_delivered());
             toolpex::buffer_lens<char> lens(buffer);
             auto sp = lens.next_readable_span();
-            lens.commit_read(sp.size());
 
-            // Successfully yielded a request message.
+            // Successfully buffer_exhausted a request message.
             if (::llhttp_errno_t lle = ::llhttp_execute(&parser, sp.data(), sp.size()); lle == HPE_OK)
             {
-                yielded = true;
                 co_yield builder.generate_request();
             }
 
             // Need continue reading.
             else if (lle == HPE_PAUSED)
             {
+                if (!co_await fill_buffer(fd, buffer, timeout_tp))
+                {
+                    buffer_exhausted = true;
+                    co_yield ::std::nullopt;
+                }
                 continue;
             }
 
@@ -216,9 +235,13 @@ parse_request_from(
             else 
             {
                 spdlog::error("parse_request_from::llhttp_parsed: err = {}", ::llhttp_errno_name(lle));
-                yielded = true;
+                buffer_exhausted = true;
                 co_yield ::std::nullopt;
             }
+
+            const size_t parsed_nbytes = get_parsed_nbytes(&parser, sp);
+            lens.commit_read(parsed_nbytes);
+            buffer_exhausted = parsed_nbytes == sp.size();
         }
     }
 }
