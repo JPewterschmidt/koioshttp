@@ -26,9 +26,15 @@ end
 
 target("koioshttp")
     set_kind("shared")
+    add_deps("koios")
     add_files("src/*.cc")
     set_policy("build.warning", true)
     add_cxflags("-Wconversion", { force = true })
+    add_packages(
+        "uriparser", 
+        "llhttp", 
+        "spdlog"
+    )
     add_includedirs(
         "include", 
         { public = true }
