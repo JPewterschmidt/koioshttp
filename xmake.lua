@@ -33,22 +33,3 @@ target("koioshttp")
         "include", 
         { public = true }
     )
-
-target("koioshttp-example")
-    set_kind("binary")
-    add_files("example/*.cc")
-    add_deps("koioshttp")
-
-target("koioshttp-test")
-    set_kind("binary")
-    add_packages(
-        "gtest"
-    )
-    add_files("test/*.cc")
-    after_build(function (target)
-        os.execv(target:targetfile(), {"--gtest_color=yes"})
-        print("xmake: unittest complete.")
-    end)
-    on_run(function (target)
-        --nothing
-    end)
