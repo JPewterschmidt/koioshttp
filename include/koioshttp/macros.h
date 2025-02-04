@@ -1,6 +1,8 @@
 #ifndef KOIOSHTTP_MACROS_H 
 #define KOIOSHTTP_MACROS_H 
 
+#define KH_NUMBER_METHODS (34)
+
 /* Request Methods */
 #define KH_HTTP_METHOD_MAP(XX)         \
   XX(0U,  DELETE,      "DELETE")       \
