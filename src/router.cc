@@ -1,6 +1,9 @@
 #include "koioshttp/router.h"
 
 #include <ranges>
+#include <utility>
+#include <vector>
+#include <list>
 
 namespace rv = ::std::ranges::views;
 namespace r = ::std::ranges;
@@ -48,7 +51,6 @@ void router::insert(::std::string_view path, router::callback_t cb)
     router_node* current = m_root_node.get();
     for (auto str : splitted)
     {
-        toolpex_assert(current);
         auto it = current->m_subseg.find(str);
         if (it != current->m_subseg.end())
         {
@@ -71,7 +73,6 @@ router::callback_t router::find(::std::string_view path) const
     router_node* current = m_root_node.get();
     for (auto str : splitted)
     {
-        toolpex_assert(!!current);
         auto it = current->m_subseg.find(str);
         if (it == current->m_subseg.end())
             return {};
@@ -79,6 +80,40 @@ router::callback_t router::find(::std::string_view path) const
     }
     toolpex_assert(!!current);
     return current->m_callback;
+}
+
+router::callback_t router::remove(::std::string_view path)
+{
+    auto splitted = make_segments_vec(path);
+
+    router_node* current = m_root_node.get();
+    ::std::list<router_node*> back_trace;
+    for (auto str : splitted)
+    {
+        auto it = current->m_subseg.find(str);
+        if (it == current->m_subseg.end())
+            return {};
+        back_trace.push_front(::std::exchange(current, it->second));
+    }
+
+    auto result = ::std::exchange(current->m_callback, nullptr);
+    if (current->m_subseg.empty())
+    {
+        decltype(back_trace)::iterator it;
+        for (it = back_trace.begin(); it != back_trace.end(); ++it)
+        {
+            if ((**it).m_subseg.size() != 1)
+                break;
+        }
+        if (it != back_trace.end())
+        {
+            delete *it;
+        }
+              
+        delete current;
+    }
+
+    return result;
 }
 
 } // namespace koios::http

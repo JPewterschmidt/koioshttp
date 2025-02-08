@@ -40,6 +40,7 @@ private:
 public:
     void insert(::std::string_view path, callback_t cb);
     callback_t find(::std::string_view path) const;
+    callback_t remove(::std::string_view path);
 
 private:
     ::std::unique_ptr<router_node> m_root_node;
