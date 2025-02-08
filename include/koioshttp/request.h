@@ -1,5 +1,5 @@
-#ifndef _CANARY2_HTTP_REQUEST_H_
-#define _CANARY2_HTTP_REQUEST_H_
+#ifndef KOIOSHTTP_REQUEST_H
+#define KOIOSHTTP_REQUEST_H
 
 #include <memory>
 
@@ -16,6 +16,7 @@ public:
     using string_type = typename message_type::string_type;
 
 public:
+    constexpr basic_request() noexcept = default;
     basic_request(::std::shared_ptr<message_type> data) noexcept
         : m_data{ ::std::move(data) }
     {
