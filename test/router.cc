@@ -17,9 +17,9 @@ TEST(router, basic)
     r.insert("/hello",                  [] (server::request) -> koios::task<server::response> { test_success[1] = true; co_return {}; });
     r.insert("/hello/wilson/jeremy",    [] (server::request) -> koios::task<server::response> { test_success[2] = true; co_return {}; });
     
-    r.find("hello")({}).result();
-    r.find("hello/wilson/jeremy")({}).result();
-    r.find("hello/world")({}).result();
+    (void)r.find("hello")({}).result();
+    (void)r.find("hello/wilson/jeremy")({}).result();
+    (void)r.find("hello/world")({}).result();
 
     ASSERT_TRUE(test_success[0]);
     ASSERT_TRUE(test_success[1]);

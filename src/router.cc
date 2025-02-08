@@ -10,7 +10,7 @@ namespace koios::http
 
 void router::recursive_delete(router_node* node) noexcept
 {
-    if (!!node) return;
+    if (!node) return;
     
     auto& map = node->m_subseg;
     for (auto it = map.begin(); it != map.end(); ++it)
