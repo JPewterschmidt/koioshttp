@@ -59,7 +59,7 @@ void router::insert(::std::string_view path, router::callback_t cb)
     current->m_callback = ::std::move(cb);
 }
 
-router::callback_t router::find(::std::string_view path)
+router::callback_t router::find(::std::string_view path) const
 {
     auto splitted = path
         | rv::split('/')
