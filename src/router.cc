@@ -36,6 +36,7 @@ void router::insert(::std::string_view path, router::callback_t cb)
 {
     auto splitted = path 
         | rv::split('/') 
+        | rv::filter([](const auto& item) { return item.size() != 0; })
         | r::to<::std::vector<::std::string>>()
         ;
 
@@ -62,8 +63,10 @@ router::callback_t router::find(::std::string_view path)
 {
     auto splitted = path
         | rv::split('/')
+        | rv::filter([](const auto& item) { return item.size() != 0; })
         | r::to<::std::vector<::std::string>>()
         ;
+
     router_node* current = m_root_node.get();
     for (auto str : splitted)
     {
