@@ -32,13 +32,18 @@ router::router()
 {
 }
 
-void router::insert(::std::string_view path, router::callback_t cb)
+static auto make_segments_vec(::std::string_view path)
 {
-    auto splitted = path 
+    return path
         | rv::split('/') 
         | rv::filter([](const auto& item) { return item.size() != 0; })
         | r::to<::std::vector<::std::string>>()
         ;
+}
+
+void router::insert(::std::string_view path, router::callback_t cb)
+{
+    auto splitted = make_segments_vec(path);
 
     router_node* current = m_root_node.get();
     for (auto str : splitted)
@@ -61,11 +66,7 @@ void router::insert(::std::string_view path, router::callback_t cb)
 
 router::callback_t router::find(::std::string_view path) const
 {
-    auto splitted = path
-        | rv::split('/')
-        | rv::filter([](const auto& item) { return item.size() != 0; })
-        | r::to<::std::vector<::std::string>>()
-        ;
+    auto splitted = make_segments_vec(path);
 
     router_node* current = m_root_node.get();
     for (auto str : splitted)
